@@ -1,0 +1,9 @@
+# Student data must never be committed. Ignore everything, then allow only scripts.
+*
+!*/
+!.gitignore
+!*.py
+!*.ipynb
+
+# Never track anything under Data/, even scripts.
+Data/
