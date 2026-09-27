@@ -4,6 +4,11 @@
 !.gitignore
 !*.py
 !*.ipynb
+!requirements.txt
+!README.md
 
 # Never track anything under Data/, even scripts.
 Data/
+
+# Canvas API key. Already excluded by the rules above; listed explicitly so it stays ignored.
+canvas_api_key.txt
