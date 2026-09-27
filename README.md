@@ -19,4 +19,6 @@ These scripts combine exported score spreadsheets into outcome grades and upload
 Activate the environment each time with `source .venv/bin/activate`.
 
 - `python combine_scores.py` builds the `*_master.xlsx` files and `final_grades.xlsx` from the files in `Data/`.
+- `python upload_grades.py` does a dry run. It matches students and assignments in Canvas and writes `upload_plan.xlsx` showing every grade it would post. Nothing changes in Canvas.
+- `python upload_grades.py --upload` posts the grades, then reads them back from Canvas to confirm they were saved. It won't run if any of these assignments already has scores in Canvas.
 - `python check_ids.py` is a read-only test. It connects to Canvas and lists a few students from each course with their Canvas IDs. If you've run `combine_scores.py` first, it also shows which Canvas ID matches the SID in the spreadsheets.
