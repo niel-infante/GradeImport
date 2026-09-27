@@ -4,7 +4,7 @@ from pathlib import Path
 
 from canvasapi import Canvas
 
-BASE_URL = "https://unomaha.instructure.com"
+BASE_URL = "https://mynu.instructure.com"
 KEY_FILE = Path(__file__).parent / "canvas_api_key.txt"
 
 
