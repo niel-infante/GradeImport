@@ -1,6 +1,6 @@
 """Read-only test: connect to Canvas and show how students are identified.
 
-Lists the MATH1330 courses you teach, then a few students from each with
+Lists this term's MATH1330 courses you teach (see TERM in canvas_client.py), then a few students from each with
 every ID Canvas gives us. If LC1_master.xlsx exists (run combine_scores.py
 first), each student is also matched to our spreadsheet SID so we can see
 which Canvas ID field the SID corresponds to. Nothing is changed in Canvas.
@@ -12,9 +12,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from canvas_client import get_canvas
+from canvas_client import COURSE, TERM, get_canvas, target_courses
 
-COURSE_FILTER = "MATH1330"
 MASTER_FILE = Path(__file__).parent / "LC1_master.xlsx"
 n_students = int(sys.argv[1]) if len(sys.argv) > 1 else 5
 
@@ -30,11 +29,12 @@ if MASTER_FILE.exists():
 else:
     print(f"({MASTER_FILE.name} not found; showing Canvas IDs without comparing.)\n")
 
-courses = list(canvas.get_courses(enrollment_type="teacher", include=["sections"]))
-matching = [c for c in courses if COURSE_FILTER in getattr(c, "name", "") + getattr(c, "course_code", "")]
+matching, skipped = target_courses(canvas, include=["sections"])
+for c in skipped:
+    print(f"Skipping {c.name} (not {TERM} {COURSE}-xxx)")
 if not matching:
-    print(f"No courses matching {COURSE_FILTER!r}. Courses you teach:")
-    for c in courses:
+    print(f"No courses named like '{TERM} {COURSE}-xxx'. Courses you teach:")
+    for c in canvas.get_courses(enrollment_type="teacher"):
         print(f"  {c.id}: {getattr(c, 'name', '?')}")
     raise SystemExit
 

@@ -1,7 +1,7 @@
 """Turn every score export in Data/ into outcome grades.
 
-Exports are found by name. Each one can be a folder, a .zip, or (for bonus
-exports) a single spreadsheet:
+Exports are found by name (anything with "practice" in its name is ignored).
+Each one can be a folder, a .zip, or (for bonus exports) a single spreadsheet:
     LC_<n>_-_LO_<a>[_<b>...]_...   Learning Check n, covering LO a, b, ...
     CR_<n>_...                     CR n
     Bonus_LO<n>...                 bonus for LO n
@@ -59,7 +59,8 @@ def find_exports(data_dir):
     for path in sorted(data_dir.iterdir()):
         if path.name.startswith((".", "~$")):
             continue
-        if not (path.is_dir() or path.suffix.lower() in (".zip", ".xlsx", ".csv")):
+        if (not (path.is_dir() or path.suffix.lower() in (".zip", ".xlsx", ".csv"))
+                or "practice" in path.name.lower()):
             ignored.append(path.name)
             continue
         for pattern, parse in NAME_PATTERNS:

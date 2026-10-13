@@ -6,7 +6,8 @@ changed in Canvas unless you add --upload.
 
 Students are matched by SID = Canvas sis_user_id. Each outcome column in
 final_grades.xlsx (LO1, CR2, ...) is matched to the Canvas assignment whose
-name starts with it, e.g. LO1 -> "LO 1: Right Triangle Trig".
+name starts with it, e.g. LO1 -> "LO 1: Right Triangle Trig". Assignments
+with "practice" in the name are ignored.
 
 final_grades.xlsx holds each student's full total, recomputed from every
 export, so uploads only ever raise scores:
@@ -25,13 +26,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from canvas_client import get_canvas
+from canvas_client import COURSE, TERM, get_canvas, target_courses
 from combine_scores import MAX_SCORE
 
 ROOT = Path(__file__).parent
 GRADES_FILE = ROOT / "final_grades.xlsx"
 PLAN_FILE = ROOT / "upload_plan.xlsx"
-COURSE_FILTER = "MATH1330"
 OUTCOME_COLUMN = re.compile(r"^([A-Z]+)(\d+)$")
 ACTIONS_TO_UPLOAD = ("new", "raise")
 
@@ -47,7 +47,7 @@ def find_assignment(assignments, outcome):
     """The one assignment named like "LO 1: ..." for outcome "LO1", or an error message."""
     kind, number = OUTCOME_COLUMN.match(outcome).groups()
     pattern = re.compile(rf"^{kind}\s*{number}\s*:", re.IGNORECASE)
-    found = [a for a in assignments if pattern.match(a.name.strip())]
+    found = [a for a in assignments if pattern.match(a.name.strip()) and "practice" not in a.name.lower()]
     if len(found) != 1:
         names = f": {', '.join(a.name for a in found)}" if found else ""
         return None, f"expected 1 assignment named '{kind} {number}: ...', found {len(found)}{names}"
@@ -64,12 +64,11 @@ def build_plan(canvas, grades, outcomes):
     """
     errors, warnings, rows, assignment_objs = [], [], [], {}
 
-    courses = [
-        c for c in canvas.get_courses(enrollment_type="teacher", enrollment_state="active")
-        if COURSE_FILTER in getattr(c, "name", "") + getattr(c, "course_code", "")
-    ]
+    courses, skipped = target_courses(canvas, enrollment_state="active")
+    for course in skipped:
+        print(f"Skipping {course.name} (not {TERM} {COURSE}-xxx)")
     if not courses:
-        return pd.DataFrame(), {}, [f"No active courses matching {COURSE_FILTER!r}"], []
+        return pd.DataFrame(), {}, [f"No active courses named like '{TERM} {COURSE}-xxx'"], []
 
     grades = grades.assign(key=grades["SID"].map(norm_id)).set_index("key")
     matched_keys = set()
@@ -99,7 +98,7 @@ def build_plan(canvas, grades, outcomes):
                                 f"{getattr(user, 'sis_user_id', None)}) is not in {GRADES_FILE.name}; skipped")
         dupes = matched_keys & students.keys()
         for key in dupes:
-            errors.append(f"SID {grades.loc[key, 'SID']} is enrolled in more than one {COURSE_FILTER} course")
+            errors.append(f"SID {grades.loc[key, 'SID']} is enrolled in more than one {TERM} {COURSE} course")
         matched_keys |= students.keys()
         print(f"  {len(students)} students matched")
 
