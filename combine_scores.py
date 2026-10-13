@@ -15,7 +15,7 @@ for that outcome is >= CUTOFF, else 0 (no submission = 0). The score is:
   - export covers one outcome: the Total Score column, or if there isn't one,
     the question columns added up
   - export covers several: question columns grouped by number, so 1.x is the
-    first LO in the name, 2.x the second, ...
+    first LO in the name, 2.x the second, ... (Total Score is never used)
 Outcome totals add up across all exports, capped at MAX_SCORE. Every export
 ever given must stay in Data/, because totals are recomputed from all of them.
 
@@ -183,11 +183,9 @@ def outcome_scores(export_id, name, df, outcomes):
     return pd.DataFrame(scores)
 
 
-def is_graded(export_id, name, df):
+def is_graded(export_id, name, df, score_cols):
     if "Status" not in df.columns:
-        if "Total Score" in df.columns:
-            return df["Total Score"].notna()
-        return df[question_cols(df)].notna().any(axis=1)
+        return df[score_cols].notna().any(axis=1)
     other = set(df["Status"].dropna()) - {"Graded", "Missing"}
     if other:
         print(f"  WARNING: {export_id} / {name}: status {sorted(other)} counted as no submission")
@@ -200,12 +198,7 @@ def combine(export_id, outcomes, source, out_dir):
         scores = outcome_scores(export_id, name, df, outcomes)
         score_cols = [f"{o} Score" for o in outcomes]
         df[score_cols] = scores.to_numpy()
-        graded = df[is_graded(export_id, name, df)]
-        if len(outcomes) > 1 and "Total Score" in df.columns:
-            mismatch = (graded[score_cols].sum(axis=1).round(4) != graded["Total Score"].round(4))
-            if mismatch.any():
-                raise SystemExit(f"{export_id} / {name}: outcome scores don't add up to Total Score "
-                                 f"for {mismatch.sum()} students")
+        graded = df[is_graded(export_id, name, df, score_cols)]
         graded_frames.append(graded)
         all_rows.append(df)
     all_rows = pd.concat(all_rows, ignore_index=True)
