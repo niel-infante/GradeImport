@@ -28,7 +28,16 @@ If you download the same export twice (e.g. `... (1).zip`), the script stops and
 
 ## Running
 
+First, run 
+`git pull`
+
+This gets the most up-to-date code.
+
+
+
 Activate the environment each time with `source .venv/bin/activate`.
+
+Not needed if we installed to the system env, which we did on the home mac. Don't remember the school mac.
 
 - `python combine_scores.py` builds a `*_master.xlsx` file for each export and `final_grades.xlsx` with every student's outcome totals. Each export adds 0 or 1 to each outcome it covers (1 if the score is 0.75 or more), and each outcome total is capped at 2.
 - `python upload_grades.py` does a dry run. It matches students and assignments in Canvas and writes `upload_plan.xlsx` showing every grade it would post. Nothing changes in Canvas.
