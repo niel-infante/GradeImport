@@ -38,16 +38,24 @@ CUTOFF = 0.75
 MAX_SCORE = 2  # outcome scores add up across exports, capped here
 EXPECTED_VERSIONS = 4
 
-# Export name -> (export id, outcomes it covers).
+# Export name -> (export id, outcomes it covers). Matching ignores case, and
+# accepts spaces or hyphens where the downloads have underscores.
+SEP = r"[_\s-]"
+END = r"(?=[_\s.-]|$)"
 NAME_PATTERNS = [
-    (re.compile(r"^LC_(\d+)_-_LO_(\d+(?:_\d+)*)_"),
-     lambda m: (f"LC{m[1]}", [f"LO{n}" for n in m[2].split("_")])),
-    (re.compile(r"^CR_(\d+)_"), lambda m: (f"CR{m[1]}", [f"CR{m[1]}"])),
-    (re.compile(r"^Bonus_LO_?(\d+)", re.IGNORECASE), lambda m: (f"Bonus_LO{m[1]}", [f"LO{m[1]}"])),
+    (re.compile(rf"^LC{SEP}*(\d+){SEP}+LO{SEP}*(\d+(?:[_\s]\d+)*){END}", re.IGNORECASE),
+     lambda m: (f"LC{m[1]}", [f"LO{n}" for n in re.split(r"[_\s]", m[2])])),
+    (re.compile(rf"^CR{SEP}*(\d+){END}", re.IGNORECASE), lambda m: (f"CR{m[1]}", [f"CR{m[1]}"])),
+    (re.compile(rf"^Bonus{SEP}*LO{SEP}*(\d+){END}", re.IGNORECASE),
+     lambda m: (f"Bonus_LO{m[1]}", [f"LO{m[1]}"])),
 ]
 VERSION_FILE = re.compile(r"_V([A-Z])_scores\.(?:xlsx|csv)$", re.IGNORECASE)
 QUESTION_GROUP = re.compile(r"^(\d+)\.\d+")
 QUESTION_POINTS = re.compile(r"\(([\d.]+) pts\)$")
+
+
+def is_zip(path):
+    return path.is_file() and path.name.strip().lower().endswith(".zip")
 
 
 def natural_key(text):
@@ -58,14 +66,15 @@ def find_exports(data_dir):
     """Return {export id: (outcomes, source path)} for everything in data_dir."""
     found, ignored = {}, []
     for path in sorted(data_dir.iterdir()):
-        if path.name.startswith((".", "~$")):
+        name = path.name.strip()  # stray spaces in a downloaded name are invisible in Finder
+        if name.startswith((".", "~$")):
             continue
-        if (not (path.is_dir() or path.suffix.lower() in (".zip", ".xlsx", ".csv"))
-                or "practice" in path.name.lower()):
+        if (not (path.is_dir() or Path(name).suffix.lower() in (".zip", ".xlsx", ".csv"))
+                or "practice" in name.lower()):
             ignored.append(path.name)
             continue
         for pattern, parse in NAME_PATTERNS:
-            match = pattern.match(path.name)
+            match = pattern.match(name)
             if match:
                 export_id, outcomes = parse(match)
                 # Keyed by outcomes too: one LC can come as a separate file per LO.
@@ -77,8 +86,8 @@ def find_exports(data_dir):
     by_id = {}
     for (export_id, outcomes), sources in found.items():
         # A folder unzipped next to its own .zip is the same export.
-        folders = {s.name for s in sources if s.is_dir()}
-        sources = [s for s in sources if not (s.suffix.lower() == ".zip" and s.stem in folders)]
+        folders = {s.name.strip() for s in sources if s.is_dir()}
+        sources = [s for s in sources if not (is_zip(s) and s.name.strip()[:-4].strip() in folders)]
         if len(sources) > 1:
             raise SystemExit(f"More than one export for {export_id} ({', '.join(outcomes)}) in "
                              f"{data_dir.name}/ (remove all but one): {', '.join(s.name for s in sources)}")
@@ -100,7 +109,11 @@ def find_exports(data_dir):
                 seen[outcome] = source
             exports[f"{export_id}_{'_'.join(outcomes)}"] = (outcomes, source)
     if ignored:
-        print(f"Ignored (name not recognised): {', '.join(ignored)}\n")
+        # Quoted so stray spaces or odd characters in a name are visible.
+        print("Ignored (name not recognised or contains 'practice'):")
+        for name in ignored:
+            print(f"  {name!r}")
+        print()
     return dict(sorted(exports.items(), key=lambda kv: natural_key(kv[0])))
 
 
@@ -115,7 +128,7 @@ def score_files(source):
     if source.is_dir():
         return {p.name: p.read_bytes() for p in sorted(source.rglob("*"))
                 if p.is_file() and is_score_file(str(p.relative_to(source)))}
-    if source.suffix.lower() == ".zip":
+    if is_zip(source):
         with zipfile.ZipFile(source) as z:
             return {n.rsplit("/", 1)[-1]: z.read(n) for n in sorted(z.namelist()) if is_score_file(n)}
     return {source.name: source.read_bytes()}

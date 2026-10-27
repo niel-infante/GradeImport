@@ -24,7 +24,7 @@ Put each export in `Data/` exactly as downloaded. An export can be a `.zip`, a f
 
 ### Export names (the items in `Data/`)
 
-The script works out what an export is from the start of its name. Anything after that start is ignored, so download suffixes like `(2) 2` don't matter.
+The script works out what an export is from the start of its name. Anything after that start is ignored, so download suffixes like `(2) 2` don't matter. Matching ignores capitalization and spaces at either end of the name, and a space or hyphen is accepted where the table shows an underscore. So `cr 3 Version_Set_Scores.zip` is read as CR 3.
 
 | Kind | Name must start with | Covers | Examples |
 |---|---|---|---|
@@ -34,9 +34,9 @@ The script works out what an export is from the start of its name. Anything afte
 
 Notes:
 
-- **Learning Check names need an underscore after the last LO number.** `LC_2_-_LO_1_2_Version_Set_Scores` covers LO 1 and LO 2.
+- **The number must be followed by a separator (`_`, space, `-` or `.`) or the end of the name.** `LC_2_-_LO_1_2_Version_Set_Scores` covers LO 1 and LO 2. `CR_3.zip` is CR 3, but `CR_3notes.zip` isn't recognized.
 - **A Learning Check can come as one export per LO,** e.g. `LC_4_-_LO_5_Version_Set_Scores.zip` and `LC_4_-_LO_6_Version_Set_Scores.zip`. Keep them all; each counts toward its own LO.
-- **These are ignored, and listed as "Ignored" when the script runs:**
+- **These are ignored, and listed as "Ignored" when the script runs.** Each ignored name is shown in quotes, so stray spaces or odd characters are visible.
   - anything with `practice` in the name (any capitalization)
   - any other name that doesn't match the table
 - **These stop the script and name the files involved:**
