@@ -161,8 +161,12 @@ def load_versions(export_id, source):
         if "Total Score" not in df.columns and not question_cols(df):
             raise SystemExit(f"{export_id} / {name}: no Total Score column and no question columns "
                              f"(headers ending in '(… pts)') to add up")
+        df = df.dropna(subset=["SID"])  # blank rows, e.g. left at the end of a sheet by Excel
         df["Version"] = version
         frames[name] = df
+    if all(df.empty for df in frames.values()):
+        raise SystemExit(f"{export_id} ({source.name}): no student rows in any file. Is the export empty? "
+                         f"Download it again, or move it out of Data/.")
     return frames
 
 
