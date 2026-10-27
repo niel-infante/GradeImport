@@ -3,6 +3,7 @@
 Exports are found by name (anything with "practice" in its name is ignored).
 Each one can be a folder, a .zip, or (for bonus exports) a single spreadsheet:
     LC_<n>_-_LO_<a>[_<b>...]_...   Learning Check n, covering LO a, b, ...
+                                   (an LC may also come as one export per LO)
     CR_<n>_...                     CR n
     Bonus_LO<n>...                 bonus for LO n
 
@@ -67,20 +68,37 @@ def find_exports(data_dir):
             match = pattern.match(path.name)
             if match:
                 export_id, outcomes = parse(match)
-                found.setdefault(export_id, (outcomes, []))[1].append(path)
+                # Keyed by outcomes too: one LC can come as a separate file per LO.
+                found.setdefault((export_id, tuple(outcomes)), []).append(path)
                 break
         else:
             ignored.append(path.name)
 
-    exports = {}
-    for export_id, (outcomes, sources) in found.items():
+    by_id = {}
+    for (export_id, outcomes), sources in found.items():
         # A folder unzipped next to its own .zip is the same export.
         folders = {s.name for s in sources if s.is_dir()}
         sources = [s for s in sources if not (s.suffix.lower() == ".zip" and s.stem in folders)]
         if len(sources) > 1:
-            raise SystemExit(f"More than one export for {export_id} in {data_dir.name}/ "
-                             f"(remove all but one): {', '.join(s.name for s in sources)}")
-        exports[export_id] = (outcomes, sources[0])
+            raise SystemExit(f"More than one export for {export_id} ({', '.join(outcomes)}) in "
+                             f"{data_dir.name}/ (remove all but one): {', '.join(s.name for s in sources)}")
+        by_id.setdefault(export_id, []).append((list(outcomes), sources[0]))
+
+    exports = {}
+    for export_id, parts in by_id.items():
+        if len(parts) == 1:
+            exports[export_id] = parts[0]
+            continue
+        # Several files for one LC, e.g. LC_4_-_LO_5 and LC_4_-_LO_6: each is its own
+        # export, as long as no outcome is covered twice.
+        seen = {}
+        for outcomes, source in parts:
+            for outcome in outcomes:
+                if outcome in seen:
+                    raise SystemExit(f"{outcome} for {export_id} is in more than one export (remove all "
+                                     f"but one): {seen[outcome].name}, {source.name}")
+                seen[outcome] = source
+            exports[f"{export_id}_{'_'.join(outcomes)}"] = (outcomes, source)
     if ignored:
         print(f"Ignored (name not recognised): {', '.join(ignored)}\n")
     return dict(sorted(exports.items(), key=lambda kv: natural_key(kv[0])))

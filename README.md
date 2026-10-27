@@ -24,7 +24,9 @@ Put each export in `Data/` exactly as downloaded. A `.zip` is fine, and so is a 
 
 **Keep every export in `Data/` for the whole term.** Totals are recomputed from all of them each time. If an old export is removed, those points drop out of the totals, though the upload never lowers a score already in Canvas.
 
-If you download the same export twice (e.g. `... (1).zip`), the script stops and asks you to remove one.
+A Learning Check can also come as one export per LO, e.g. `LC_4_-_LO_5_...` and `LC_4_-_LO_6_...`. Keep them all, and each is used for its own LO.
+
+If you download the same export twice (e.g. `... (1).zip`), the script stops and asks you to remove one. It also stops if two exports for the same Learning Check cover the same LO.
 
 ## Running
 
