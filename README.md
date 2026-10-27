@@ -16,17 +16,58 @@ These scripts combine exported score spreadsheets into outcome grades and upload
 
 ## The Data folder
 
-Put each export in `Data/` exactly as downloaded. A `.zip` is fine, and so is a folder you've unzipped (a folder and its own zip count as one export). The script recognizes exports by name:
-
-- `LC_<n>_-_LO_<a>_<b>_...` is Learning Check n, covering LO a, b, …, as 4 version files
-- `CR_<n>_...` is CR n, as 4 version files
-- `Bonus_LO<n>...` is a bonus for LO n, as a single file
+Put each export in `Data/` exactly as downloaded. An export can be a `.zip`, a folder you've unzipped, or (for bonus exports) a single `.xlsx` or `.csv` file. A folder and its own zip, such as `CR_1_Version_Set_Scores` and `CR_1_Version_Set_Scores.zip`, count as one export.
 
 **Keep every export in `Data/` for the whole term.** Totals are recomputed from all of them each time. If an old export is removed, those points drop out of the totals, though the upload never lowers a score already in Canvas.
 
-A Learning Check can also come as one export per LO, e.g. `LC_4_-_LO_5_...` and `LC_4_-_LO_6_...`. Keep them all, and each is used for its own LO.
+## Expected file names
 
-If you download the same export twice (e.g. `... (1).zip`), the script stops and asks you to remove one. It also stops if two exports for the same Learning Check cover the same LO.
+### Export names (the items in `Data/`)
+
+The script works out what an export is from the start of its name. Anything after that start is ignored, so download suffixes like `(2) 2` don't matter.
+
+| Kind | Name must start with | Covers | Examples |
+|---|---|---|---|
+| Learning Check | `LC_<n>_-_LO_<a>_` or `LC_<n>_-_LO_<a>_<b>_…_` | LO a (and b, …) | `LC_1_-_LO_1_Version_Set_Scores`<br>`LC_2_-_LO_1_2_Version_Set_Scores.zip` |
+| CR | `CR_<n>_` | CR n | `CR_1_Version_Set_Scores.zip` |
+| Bonus | `Bonus_LO<n>` or `Bonus_LO_<n>` | LO n | `Bonus_LO1.zip`<br>`Bonus_LO3_scores.xlsx` |
+
+Notes:
+
+- **Learning Check names need an underscore after the last LO number.** `LC_2_-_LO_1_2_Version_Set_Scores` covers LO 1 and LO 2.
+- **A Learning Check can come as one export per LO,** e.g. `LC_4_-_LO_5_Version_Set_Scores.zip` and `LC_4_-_LO_6_Version_Set_Scores.zip`. Keep them all; each counts toward its own LO.
+- **These are ignored, and listed as "Ignored" when the script runs:**
+  - anything with `practice` in the name (any capitalization)
+  - any other name that doesn't match the table
+- **These stop the script and name the files involved:**
+  - the same export downloaded twice, e.g. `... (1).zip`
+  - two exports for the same Learning Check that cover the same LO
+
+### Files inside an export
+
+- **Learning Checks and CRs** contain one file per test version. Each file name ends in `_V<letter>_scores.xlsx` or `_V<letter>_scores.csv`, e.g. `LC_2_-_LO_1_2_-_VA_scores.csv` through `..._VD_scores.csv`. There should be 4 (A–D); the script warns if there aren't. Any other file in the export, such as `..._Version_Set_Scores.xlsx`, is ignored.
+- **Bonus exports** contain exactly one spreadsheet, with any name.
+- **Zip contents:** subfolders are fine. Mac clutter (`__MACOSX`, `._…`) and Excel lock files (`~$…`) are ignored.
+
+### Columns the script reads
+
+| Column | Required? | Used for |
+|---|---|---|
+| `First Name`, `Last Name`, `SID`, `Email`, `Sections` | Always | Identifying the student. `SID` must match the student's SIS ID in Canvas. |
+| `Status` | Optional | `Graded` counts as a submission and `Missing` doesn't. Without this column, a student with any score counts as submitted. |
+| `Total Score` | See below | The score for an export that covers one outcome. Must be out of 1 (if there's a `Max Points` column, it must be 1). |
+| Question columns, with names ending in `(… pts)` | See below | Added up when there's no `Total Score`, or split by outcome when an export covers several. |
+
+How the score for each outcome is worked out:
+
+- **Exports covering one outcome:** the script uses `Total Score`. If there's no `Total Score` column, it adds up the question columns, which must total 1 point.
+- **Exports covering several outcomes:** the script never uses `Total Score`. Questions must be numbered by group, e.g. `1.1: Value of a (0.2 pts)` and `2.3: TF 2 (0.1 pts)`. Group 1 is the first LO in the export name, group 2 the second, and so on. Each group must total 1 point, and the number of groups must match the number of LOs in the name.
+
+A score of 0.75 or more for an outcome earns 1 point toward that outcome.
+
+### Canvas assignment names
+
+Each outcome is uploaded to the assignment whose name starts with `LO <n>:` or `CR <n>:`, e.g. `LO 1: Right Triangle Trig` or `CR 1: Factoring`. Each course needs exactly one such assignment per outcome, it must be published, and it should be worth at least 2 points. Assignments with `practice` in the name are ignored. Only courses named like `26FA MATH1330-002` are used; change `TERM` in `canvas_client.py` each semester.
 
 ## Running
 
