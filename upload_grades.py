@@ -1,5 +1,8 @@
 """Upload final_grades.xlsx to Canvas.
 
+Runs combine_scores.py first, so final_grades.xlsx always reflects what is
+currently in Data/.
+
 Dry run by default: matches every student and assignment, prints a summary,
 and writes upload_plan.xlsx showing exactly what would be posted. Nothing is
 changed in Canvas unless you add --upload.
@@ -28,6 +31,7 @@ import pandas as pd
 
 from canvas_client import COURSE, TERM, get_canvas, target_courses
 from combine_scores import MAX_SCORE
+from combine_scores import main as combine_all
 
 ROOT = Path(__file__).parent
 GRADES_FILE = ROOT / "final_grades.xlsx"
@@ -173,8 +177,13 @@ def verify(plan, assignment_objs):
 
 def main():
     do_upload = "--upload" in sys.argv[1:]
+    # Always rebuild final_grades.xlsx first, so an export added to Data/ since
+    # the last combine can't be silently left out.
+    print("Combining scores from Data/ ...\n")
+    combine_all()
     grades = pd.read_excel(GRADES_FILE)
     outcomes = [c for c in grades.columns if OUTCOME_COLUMN.match(c)]
+    print(f"\nOutcomes to upload: {', '.join(outcomes)}\n")
 
     canvas = get_canvas()
     print(f"Connected as {canvas.get_current_user().name}\n")
